@@ -1,0 +1,147 @@
+(function ($) {
+    $.fn.tabularJS = function (options) {
+        // This is the easiest way to have default options.
+        var settings = $.extend({
+            // These are the defaults.
+            data: {},
+            url: '',
+            param: '',
+            datatype: 'JSON',
+            minrow: 10,
+            numbering: '',
+            paging: false,
+            latestTop: false,
+            sort: false,
+            loadingIcon:'data:image/gif;base64,R0lGODlhEAALAPQAADaZ+wAAAC6D1yx9zTGM5wEDBQAAAAkbLRtOgBQ5XidwtwcUIQ8sSR1TiBU8YihyuwgWJQACAxAuTTCK4y2C1TOS8QshNy6E2TOR7yZtsyJgnip5xzKP6wAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh/hpDcmVhdGVkIHdpdGggYWpheGxvYWQuaW5mbwAh+QQJCwAAACwAAAAAEAALAAAFLSAgjmRpnqSgCuLKAq5AEIM4zDVw03ve27ifDgfkEYe04kDIDC5zrtYKRa2WQgAh+QQJCwAAACwAAAAAEAALAAAFJGBhGAVgnqhpHIeRvsDawqns0qeN5+y967tYLyicBYE7EYkYAgAh+QQJCwAAACwAAAAAEAALAAAFNiAgjothLOOIJAkiGgxjpGKiKMkbz7SN6zIawJcDwIK9W/HISxGBzdHTuBNOmcJVCyoUlk7CEAAh+QQJCwAAACwAAAAAEAALAAAFNSAgjqQIRRFUAo3jNGIkSdHqPI8Tz3V55zuaDacDyIQ+YrBH+hWPzJFzOQQaeavWi7oqnVIhACH5BAkLAAAALAAAAAAQAAsAAAUyICCOZGme1rJY5kRRk7hI0mJSVUXJtF3iOl7tltsBZsNfUegjAY3I5sgFY55KqdX1GgIAIfkECQsAAAAsAAAAABAACwAABTcgII5kaZ4kcV2EqLJipmnZhWGXaOOitm2aXQ4g7P2Ct2ER4AMul00kj5g0Al8tADY2y6C+4FIIACH5BAkLAAAALAAAAAAQAAsAAAUvICCOZGme5ERRk6iy7qpyHCVStA3gNa/7txxwlwv2isSacYUc+l4tADQGQ1mvpBAAIfkECQsAAAAsAAAAABAACwAABS8gII5kaZ7kRFGTqLLuqnIcJVK0DeA1r/u3HHCXC/aKxJpxhRz6Xi0ANAZDWa+kEAA7AAAAAAAAAAAA',
+            refresh: function () { showResults(settings.data.records); },
+            reload: function () { showResults(settings.data.records); },
+            searchButton: true,
+            headerButton: true,
+            refreshButton: true,
+            settingButton: true,
+            refreshButtonCss: '',
+            settingButtonCss: ''
+        }, options);
+        this.html('');
+        var t = $('<table style="width: 100%;" cellpadding="0" cellspacing="0"></table>').appendTo(this);
+        /*setting table*/
+        t.attr('id', $(this).attr('id') + '_list');
+        t.addClass('tabularJS');
+        /*add header*/
+        this.css({
+            "background": "url('" + settings.loadingIcon + "') 50% 50%  no-repeat",
+            "min-height": "150px", "width": "50%"
+        })
+        var thiselem = this;
+        new $.ajax({
+            url: 'json.aspx?act=W2UI_GRID',datatype:'json',success: function (success) {
+                settings.data = success;
+                var tr = $('<tr></tr>').appendTo(t);
+                var th = $('<th id="' + t.attr('id') + '_head" class="header-top" colspan="' + (settings.numbering != '' ? (settings.data.cols_header.length + 1) : settings.data.cols_header.length) + '" ></th>').appendTo(tr);
+                var sb = $('<div class="icon"><span class="ui-icon ui-icon-refresh"></span></div>').appendTo(th);
+                var stb = $('<div class="icon"><span class="ui-icon ui-icon-gear"></span></div>').appendTo(th);
+                var ln = $('<div  style="display:inline-block; background-image: -moz-linear-gradient(center top , rgba(153, 153, 153, 0.1) 0px, #999999 40%, #999999 60%, rgba(153, 153, 153, 0.1) 100%);background-image: -o-linear-gradient(center top , rgba(153, 153, 153, 0.1) 0px, #999999 40%, #999999 60%, rgba(153, 153, 153, 0.1) 100%);background-image: -webkit-linear-gradient(center top , rgba(153, 153, 153, 0.1) 0px, #999999 40%, #999999 60%, rgba(153, 153, 153, 0.1) 100%);height: 25px; padding: 0; width: 1px !important;"></div>').appendTo(th);
+                var srb = $('<div class="icon"><span class="ui-icon ui-icon-search"></span></div>').appendTo(th);
+                tr = $('<tr></tr>').appendTo(t);
+                setupFunction(tr);
+                showResults(settings.data.records);
+                thiselem.css('background', '');
+                thiselem.css('overflow', 'auto');
+                thiselem.css('height', '300px');
+
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                if (errorThrown == '')
+                    errorThrown = ' Network not available ';
+                //tr.remove();
+                thiselem.css('background', '');
+
+                msg_popup(errorThrown, textStatus);
+            }
+        });
+        function createColumn(tRow, tsort) {
+            tsort = tsort.toString().split(",");
+            if (settings.numbering != '')
+            {
+                var cltd = $('<td id="' + t.attr('id') + '_head_cols' + i + '"></td>').appendTo(tRow);
+                var spn = $('<span></span>').appendTo(cltd);
+                i == settings.data.cols_header.length - 1 ? cltd.addClass('column-last') : cltd.addClass('column-tabular');
+                cltd.css('width', '20px');
+                spn.html(settings.numbering);
+            }
+            for (var i = 0; i < settings.data.cols_header.length ; i++) {
+                var cltd = $('<td id="' + t.attr('id') + '_head_cols' + i + '" colsname="' + tsort[i] + '"></td>').appendTo(tRow);
+                var spn = $('<span ></span>').appendTo(cltd);
+                i == settings.data.cols_header.length - 1 ? cltd.addClass('column-last') : cltd.addClass('column-tabular');
+                if (settings.sort == true) {
+                    cltd.attr('asc', '');
+                    cltd.css('cursor', 'pointer');
+                    cltd.click(function () { sortResults(settings.data.records, $(this).attr('colsname'), $(this).attr('asc')); $(this).attr('asc') == 'asc' ? $(this).attr('asc', '') : $(this).attr('asc', 'asc'); });
+                }
+                spn.html(settings.data.cols_header[i]);
+            }
+        }
+        function setupFunction(tRow) {
+
+            /*set data var*/
+            var restoreData = settings.data.records;
+            var rowcolname = new Array();
+            var myCars = new Array();
+            var a = 0;
+            //$(restoreData).each(function () { 
+                for (var el in restoreData[0]) {
+                        rowcolname[a++] = el;
+                    }
+            //});
+            /*-----------------------------------*/
+                createColumn(tRow, rowcolname);
+                $('.ui-icon .ui-icon-refresh').click(function () { sortResults(restoreData, rowcolname[0], 'asc') });
+                $('.ui-icon .ui-icon-gear').click(function () { });
+
+        }
+
+        function sortResults(data, prop, asc) { 
+            data = data.sort(function (a, b) {
+                if (asc) return (a[prop] > b[prop]);
+                else return (b[prop] > a[prop]);
+            });
+            showResults(data);
+        }
+        function showResults(data) {
+            $('.data-rows').remove();
+            for (var ii = 0; ii < data.length ; ii++) {
+                var i = 0;
+                tr = $('<tr class="data-rows"></tr>').appendTo(t);
+                ii % 2 == 0 ? tr.addClass('rows-odd') : tr.addClass('rows-event');
+                if (ii == data.length-1)
+                    tr.addClass('rows-last');
+                dt = eval(data[ii]);
+              
+                //$(dt).each(function () {
+                for (var el in dt) { 
+                    if (i == 0 && settings.numbering != '') {
+                        var clbtd = $('<td id="' + t.attr('id') + '_row' + ii + '"></td>').appendTo(tr);
+                        var spnb = $('<span></span>').appendTo(clbtd);
+                        i == settings.data.cols_header.length - 1 ? clbtd.addClass('rows-col-last') : clbtd.addClass('rows');
+                        spnb.html(ii + 1);
+                    }
+                        var cltd = $('<td id="' + t.attr('id') + '_row' + ii + '_cols' + i + '"></td>').appendTo(tr);
+                        var spn = $('<span></span>').appendTo(cltd);
+                        i == settings.data.cols_header.length - 1 ? cltd.addClass('rows-col-last') : cltd.addClass('rows');
+                        spn.html(dt[el]); 
+                        i++;
+                    }
+                     
+
+                //});
+             }
+
+        }
+       // showResults();
+        
+
+        return settings;
+    };
+}(jQuery));
+ 
+
